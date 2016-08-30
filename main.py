@@ -289,7 +289,7 @@ class Connection(object):
         room.state = 0
 
     def send_json(self, json_data):
-        self.send_message((json.dumps(json_data) + '\0').decode("utf-16").encode("gbk"))
+        self.send_message(eval("u'%s'" % json.dumps(json_data)).encode("gbk") + '\0')
 
     def send_message(self, data):
         self._stream.write(data)
