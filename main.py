@@ -62,8 +62,6 @@ class Connection(object):
     def handle_message(self, data):
         data = data.decode('gbk').encode('utf-8')
         print self.address + '> ' + data
-        for char in data:
-            print(str(char) + ', ' + str(ord(char)))
         try:
             json_data = json.loads(data)
             method = json_data['method']
@@ -291,12 +289,13 @@ class Connection(object):
         room.state = 0
 
     def send_json(self, json_data):
-        self.send_message(json.dumps(json_data) + '\0')
+        self.send_message((json.dumps(json_data) + '\0').encode("gbk"))
 
     def send_message(self, data):
         self._stream.write(data)
 
     def on_close(self):
+        print self.address + '> [已断开]'
         Connection.clients.remove(self)
 
 
