@@ -61,7 +61,7 @@ class Connection(object):
 
     def handle_message(self, data):
         data = data.decode('gbk').encode('utf-8')
-        print self.address + '> ' + data
+        print self.address + '> ' + data.replace('\n', '')
         try:
             json_data = json.loads(data)
             method = json_data['method']
