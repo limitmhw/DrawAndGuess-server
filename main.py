@@ -15,6 +15,7 @@ from tornado.tcpserver import TCPServer
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+# 数据库配置
 DB_HOST = '139.129.4.219'
 DB_USER = 'draw_and_guess'
 DB_PWD = 'dng2744394782'
@@ -27,6 +28,7 @@ db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True, 
 max_round = 2
 
 
+# 房间ORM
 class Room(Base):
     __tablename__ = 'rooms'
     id = Column(Integer, primary_key=True)  # 房间号
@@ -35,6 +37,7 @@ class Room(Base):
     curr_word = Column(String)  # 当前词语
 
 
+# 用户ORM
 class User(Base):
     __tablename__ = 'users'
     id = Column(Integer, primary_key=True)  # 用户号
@@ -44,28 +47,38 @@ class User(Base):
     state = Column(Integer)  # 用户状态, 0未准备, 1已准备, 2擂主中, 3攻擂中
 
 
+# 服务器逻辑
 class Connection(object):
+    # 静态集合, 保存所有连接
     clients = set()
 
-    def __init__(self, stream, address):  # 新用户连接
+    # 新用户连接
+    def __init__(self, stream, address):
         print address[0] + '> [已连接]'
 
+        # 注册连接
         Connection.clients.add(self)
+
         self._stream = stream
         self.address = address[0]
         self._stream.set_close_callback(self.on_close)
         self.read_message()
 
+    # 收到消息的分配
     def read_message(self):
         self._stream.read_until('\n', self.handle_message)
 
+    # 分配到消息的处理
     def handle_message(self, data):
+
+        # Windows端的编码转换
         data = data.decode('gbk').encode('utf-8')
         print self.address + '> ' + data.replace('\n', '')
         try:
             json_data = json.loads(data)
             method = json_data['method']
 
+            # 创建房间
             if method == 'create_room':
                 print self.address + '> [创建房间]'
                 try:
@@ -84,13 +97,14 @@ class Connection(object):
                     db.rollback()
                     self.send_json({'success': False, 'reason': u'创建房间失败, 可能是昵称过长, 请重试'})
 
+            # 加入房间
             elif method == 'join_room':
                 print self.address + '> [加入房间]'
                 try:
                     rooms = db.query(Room).filter(Room.id == json_data['room']).all()
                     if len(rooms) < 1:
                         self.send_json({'success': False, 'reason': '房间不存在'})
-                        self.read_message()
+                        self.read_message()  # 进入下次I/O循环
                         return
 
                     room = rooms[-1]
@@ -103,19 +117,18 @@ class Connection(object):
 
                     # 通知其他人有人加入房间
                     json_data = {'event': 'user_join', 'nick': nick}
+
                     for remote_client in Connection.clients:
                         remote_address = remote_client.address
-                        print(remote_address)
                         remote_room = db.query(User).filter(User.ip == remote_address).all()[-1].room
                         if remote_room == room.id:
-                            print("send-json")
                             remote_client.send_json(json_data)
 
                 except Exception as e:
-                    print(e)
                     db.rollback()
                     self.send_json({'success': False, 'reason': u'加入房间失败, 可能是昵称过长, 请重试'})
 
+            # 准备游戏
             elif method == 'prepare_game':
                 print self.address + '> [准备游戏]'
 
@@ -143,6 +156,7 @@ class Connection(object):
                 if all_prepared:
                     self.new_game()
 
+            # 更新绘图
             elif method == 'update_pic':
                 print self.address + '> [更新绘图]'
 
@@ -160,6 +174,7 @@ class Connection(object):
                     if remote_room == user.room and remote_user.id != user.id:
                         remote_client.send_json(json_resp)
 
+            # 更新提示, 此事件是由擂主所在客户端主动发起
             elif method == 'update_hint':
                 print self.address + '> [更新提示]'
 
@@ -175,6 +190,7 @@ class Connection(object):
                     if remote_room == user.room:
                         remote_client.send_json(json_resp)
 
+            # 提交答案
             elif method == 'submit_answer':
                 print self.address + '> [提交答案]'
 
@@ -197,6 +213,7 @@ class Connection(object):
                     if remote_room == user.room:
                         remote_client.send_json(json_resp)
 
+            # 时间到, 此事件是由擂主所在客户端发起
             elif method == 'time_up':
                 print self.address + '> [计时结束]'
 
@@ -213,6 +230,7 @@ class Connection(object):
 
                 self.new_game()
 
+            # 退出房间
             elif method == 'exit_room':
                 print self.address + '> [退出房间]'
 
@@ -242,6 +260,7 @@ class Connection(object):
             self.send_json({'success': False, 'reason': '无法解析的命令'})
         self.read_message()
 
+    # 新游戏
     def new_game(self):
         print '[新游戏]'
         user = db.query(User).filter(User.ip == self.address).all()[-1]
@@ -275,9 +294,11 @@ class Connection(object):
                 elif remote_user.state == 3:
                     remote_client.send_json({'event': 'word_generated', 'nick': users[next_index].nick})
 
+    # 分配词语
     def generate_word(self):
         return '测试词语'
 
+    # 游戏结束
     def end_game(self):
         print '[游戏结束]'
         user = db.query(User).filter(User.ip == self.address).all()[-1]
@@ -293,6 +314,7 @@ class Connection(object):
         room.state = 0
 
     def send_json(self, json_data):
+        # Windows 编码转换
         self.send_message(eval("u'%s'" % json.dumps(json_data)).encode("gbk") + '\0')
 
     def send_message(self, data):
