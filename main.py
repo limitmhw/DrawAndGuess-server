@@ -90,6 +90,7 @@ class Connection(object):
                     rooms = db.query(Room).filter(Room.id == json_data['room']).all()
                     if len(rooms) < 1:
                         self.send_json({'success': False, 'reason': '房间不存在'})
+                        self.read_message()
                         return
 
                     room = rooms[-1]
@@ -121,6 +122,7 @@ class Connection(object):
                     user.state = 1
                 else:
                     self.send_json({'success': False, 'reason': u'状态错误, 用户已准备游戏或正在游戏中'})
+                    self.read_message()
                     return
 
                 # 通知其他人某用户已准备
