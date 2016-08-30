@@ -288,7 +288,7 @@ class Connection(object):
         room.state = 0
 
     def send_json(self, json_data):
-        self.send_message(json.dumps(json_data))
+        self.send_message(json.dumps(json_data) + '\0')
 
     def send_message(self, data):
         self._stream.write(data)
