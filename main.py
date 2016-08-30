@@ -105,8 +105,10 @@ class Connection(object):
                     json_data = {'event': 'user_join', 'nick': nick}
                     for remote_client in Connection.clients:
                         remote_address = remote_client.address
+                        print(remote_address)
                         remote_room = db.query(User).filter(User.ip == remote_address).all()[-1].room
                         if remote_room == room.id:
+                            print("send-json")
                             remote_client.send_json(json_data)
 
                 except Exception as e:
