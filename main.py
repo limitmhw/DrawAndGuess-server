@@ -274,5 +274,5 @@ class GameServer(TCPServer):
 if __name__ == '__main__':
     print('server started')
     server = GameServer()
-    server.listen(8086)
+    server.listen(8082)
     IOLoop.instance().start()
