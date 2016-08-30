@@ -70,11 +70,11 @@ class Connection(object):
                 print self.address + '> [创建房间]'
                 try:
                     nick = json_data['nick']
-                    room = Room()
+                    room = Room(state=0, round=0, curr_word="")
                     db.add(room)
                     db.commit()
 
-                    user = User(ip=self.address, nick=nick, room=room.id)
+                    user = User(ip=self.address, nick=nick, room=room.id, state=0)
                     db.add(user)
                     db.commit()
 
@@ -95,7 +95,7 @@ class Connection(object):
 
                     room = rooms[-1]
                     nick = json_data['nick']
-                    user = User(ip=self.address, nick=nick, room=room.id)
+                    user = User(ip=self.address, nick=nick, room=room.id, state=0)
                     db.add(user)
                     db.commit()
 
