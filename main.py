@@ -60,6 +60,7 @@ class Connection(object):
         self._stream.read_until('\n', self.handle_message)
 
     def handle_message(self, data):
+        data = data.decode('gbk').encode('utf-8')
         print self.address + '> ' + data
         try:
             json_data = json.loads(data)
