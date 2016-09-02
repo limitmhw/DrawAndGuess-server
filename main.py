@@ -44,7 +44,7 @@ class User(Base):
     ip = Column(String)  # 用户ip地址
     nick = Column(String)  # 用户昵称
     room = Column(Integer)  # 用户所在房间号
-    state = Column(Integer)  # 用户状态, 0未准备, 1已准备, 2擂主中, 3攻擂中
+    state = Column(Integer)  # 用户状态, 0非房主, 1房主, 2擂主中, 3攻擂中
 
 
 # 服务器逻辑
@@ -87,7 +87,7 @@ class Connection(object):
                     db.add(room)
                     db.commit()
 
-                    user = User(ip=self.address, nick=nick, room=room.id, state=0)
+                    user = User(ip=self.address, nick=nick, room=room.id, state=1)
                     db.add(user)
                     db.commit()
 
@@ -132,32 +132,16 @@ class Connection(object):
                     self.send_json({'method': 'join_room', 'success': False, 'reason': u'加入房间失败, 可能是昵称过长或含有特殊字符, 请重试'})
 
             # 准备游戏
-            elif method == 'prepare_game':
-                print self.address + '> [准备游戏]'
+            elif method == 'start_game':
+                print self.address + '> [开始游戏]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
-                if user.state == 0:
-                    user.state = 1
+                if user.state == 1:
+                    self.new_game()
                 else:
-                    self.send_json({'method': 'prepare_game', 'success': False, 'reason': u'状态错误, 用户已准备游戏或正在游戏中'})
+                    self.send_json({'method': 'start_game', 'success': False, 'reason': u'不是房主, 不能开始游戏'})
                     self.read_message()
                     return
-
-                # 通知其他人某用户已准备
-                json_resp = {'event': 'user_prepare', 'nick': user.nick}
-                all_prepared = True
-                for remote_client in Connection.clients:
-                    remote_address = remote_client.address
-                    remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                    remote_room = remote_user.room
-                    if remote_room == user.room:
-                        remote_client.send_json(json_resp)
-                        if remote_user.state == 0:
-                            all_prepared = False
-
-                # 如果所有人已准备, 开始游戏
-                if all_prepared:
-                    self.new_game()
 
             # 更新绘图
             elif method == 'update_pic':
@@ -314,6 +298,8 @@ class Connection(object):
                 remote_client.send_json({'event': 'game_end'})
         for remote_user in users:
             remote_user.state = 0
+        if len(users) > 0:
+            users[0].state = 1
         room.state = 0
 
     def send_json(self, json_data):
