@@ -91,11 +91,12 @@ class Connection(object):
                     db.add(user)
                     db.commit()
 
-                    self.send_json({'success': True, 'room': room.id})
+                    self.send_json({'method': 'create_room', 'success': True, 'room': room.id})
                 except Exception as e:
                     print(e)
                     db.rollback()
-                    self.send_json({'success': False, 'reason': u'创建房间失败, 可能是昵称过长, 请重试'})
+                    self.send_json(
+                        {'method': 'create_room', 'success': False, 'reason': u'创建房间失败, 可能是昵称过长或含有特殊字符, 请重试'})
 
             # 加入房间
             elif method == 'join_room':
@@ -103,7 +104,7 @@ class Connection(object):
                 try:
                     rooms = db.query(Room).filter(Room.id == json_data['room']).all()
                     if len(rooms) < 1:
-                        self.send_json({'success': False, 'reason': '房间不存在'})
+                        self.send_json({'method': 'join_room', 'success': False, 'reason': '房间不存在'})
                         self.read_message()  # 进入下次I/O循环
                         return
 
@@ -113,20 +114,22 @@ class Connection(object):
                     db.add(user)
                     db.commit()
 
-                    self.send_json({'success': True})
-
                     # 通知其他人有人加入房间
                     json_data = {'event': 'user_join', 'nick': nick}
+                    player_list = list()
 
                     for remote_client in Connection.clients:
                         remote_address = remote_client.address
-                        remote_room = db.query(User).filter(User.ip == remote_address).all()[-1].room
-                        if remote_room == room.id:
+                        remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
+                        if remote_user.room == room.id:
                             remote_client.send_json(json_data)
+                            player_list.append(remote_user.nick)
+
+                    self.send_json({'method': 'join_room', 'success': True, 'players': player_list})
 
                 except Exception as e:
                     db.rollback()
-                    self.send_json({'success': False, 'reason': u'加入房间失败, 可能是昵称过长, 请重试'})
+                    self.send_json({'method': 'join_room', 'success': False, 'reason': u'加入房间失败, 可能是昵称过长或含有特殊字符, 请重试'})
 
             # 准备游戏
             elif method == 'prepare_game':
@@ -136,7 +139,7 @@ class Connection(object):
                 if user.state == 0:
                     user.state = 1
                 else:
-                    self.send_json({'success': False, 'reason': u'状态错误, 用户已准备游戏或正在游戏中'})
+                    self.send_json({'method': 'prepare_game', 'success': False, 'reason': u'状态错误, 用户已准备游戏或正在游戏中'})
                     self.read_message()
                     return
 
@@ -164,7 +167,7 @@ class Connection(object):
                 x = json_data['x']
                 y = json_data['y']
                 new_line = json_data['new_line']
-                self.send_json({'success': True})
+                self.send_json({'method': 'update_pic', 'success': True})
                 json_resp = {'event': 'pic_updated', 'x': x, 'y': y, 'new_line': new_line}
 
                 for remote_client in Connection.clients:
@@ -180,7 +183,7 @@ class Connection(object):
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 hint = json_data['hint']
-                self.send_json({'success': True})
+                self.send_json({'method': 'update_hint', 'success': True})
                 json_resp = {'event': 'hint_updated', 'hint': hint}
 
                 for remote_client in Connection.clients:
@@ -200,7 +203,7 @@ class Connection(object):
                 right_answer = room.curr_word
                 win = answer == right_answer
 
-                self.send_json({'success': True, 'win': win})
+                self.send_json({'method': 'submit_answer', 'success': True, 'win': win})
                 if win:
                     json_resp = {'event': 'answer_submitted', 'nick': user.nick, 'win': True}
                 else:
@@ -218,7 +221,7 @@ class Connection(object):
                 print self.address + '> [计时结束]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
-                self.send_json({'success': True})
+                self.send_json({'method': 'time_up', 'success': True})
                 json_resp = {'event': 'time_up'}
 
                 for remote_client in Connection.clients:
@@ -237,7 +240,7 @@ class Connection(object):
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 room = db.query(Room).filter(Room.id == user.room).all()[-1]
                 if room.state == 1:
-                    self.send_json({'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
+                    self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
                 db.delete(user)
                 db.commit()
 
@@ -246,7 +249,7 @@ class Connection(object):
                     db.delete(room)
                     db.commit()
 
-                self.send_json({'success': True})
+                self.send_json({'method': 'exit_room', 'success': True})
 
                 for remote_client in Connection.clients:
                     remote_address = remote_client.address
