@@ -54,7 +54,7 @@ class Connection(object):
 
     # 新用户连接
     def __init__(self, stream, address):
-        print address[0] + '> [已连接]'
+        print address[0] + '\t = [已连接]'
 
         # 注册连接
         Connection.clients.add(self)
@@ -73,14 +73,14 @@ class Connection(object):
 
         # Windows端的编码转换
         data = data.decode('gbk').encode('utf-8')
-        print self.address + '> ' + data.replace('\n', '')
+        print self.address + '\t > ' + data.replace('\n', '')
         try:
             json_data = json.loads(data)
             method = json_data['method']
 
             # 创建房间
             if method == 'create_room':
-                print self.address + '> [创建房间]'
+                print self.address + '\t = [创建房间]'
                 try:
                     nick = json_data['nick']
                     room = Room(state=0, round=0, curr_word="")
@@ -100,7 +100,7 @@ class Connection(object):
 
             # 加入房间
             elif method == 'join_room':
-                print self.address + '> [加入房间]'
+                print self.address + '\t = [加入房间]'
                 try:
                     rooms = db.query(Room).filter(Room.id == json_data['room']).all()
                     if len(rooms) < 1:
@@ -133,11 +133,13 @@ class Connection(object):
 
             # 准备游戏
             elif method == 'start_game':
-                print self.address + '> [开始游戏]'
+                print self.address + '\t = [开始游戏]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 if user.state == 1:
                     self.new_game()
+                    self.send_json({'method': 'start_game', 'success': True})
+
                 else:
                     self.send_json({'method': 'start_game', 'success': False, 'reason': u'不是房主, 不能开始游戏'})
                     self.read_message()
@@ -145,7 +147,7 @@ class Connection(object):
 
             # 更新绘图
             elif method == 'update_pic':
-                print self.address + '> [更新绘图]'
+                print self.address + '\t = [更新绘图]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 x = json_data['x']
@@ -163,7 +165,7 @@ class Connection(object):
 
             # 更新提示, 此事件是由擂主所在客户端主动发起
             elif method == 'update_hint':
-                print self.address + '> [更新提示]'
+                print self.address + '\t = [更新提示]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 hint = json_data['hint']
@@ -179,7 +181,7 @@ class Connection(object):
 
             # 提交答案
             elif method == 'submit_answer':
-                print self.address + '> [提交答案]'
+                print self.address + '\t = [提交答案]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 room = db.query(Room).filter(Room.id == user.room).all()[-1]
@@ -202,7 +204,7 @@ class Connection(object):
 
             # 时间到, 此事件是由擂主所在客户端发起
             elif method == 'time_up':
-                print self.address + '> [计时结束]'
+                print self.address + '\t = [计时结束]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 self.send_json({'method': 'time_up', 'success': True})
@@ -219,7 +221,7 @@ class Connection(object):
 
             # 退出房间
             elif method == 'exit_room':
-                print self.address + '> [退出房间]'
+                print self.address + '\t = [退出房间]'
 
                 user = db.query(User).filter(User.ip == self.address).all()[-1]
                 room = db.query(Room).filter(Room.id == user.room).all()[-1]
@@ -243,13 +245,12 @@ class Connection(object):
                         remote_client.send_json({'event': 'user_exit', 'nick': user.nick})
 
         except Exception as e:
-            print('[无法解析的命令]')
+            print self.address + '\t = [无法解析的命令]'
             self.send_json({'success': False, 'reason': '无法解析的命令'})
         self.read_message()
 
     # 新游戏
     def new_game(self):
-        print '[新游戏]'
         user = db.query(User).filter(User.ip == self.address).all()[-1]
         room = db.query(Room).filter(Room.id == user.room).all()[-1]
         users = db.query(User).filter(User.room == room.id).all()
@@ -287,7 +288,7 @@ class Connection(object):
 
     # 游戏结束
     def end_game(self):
-        print '[游戏结束]'
+        print self.address + '\t = [游戏结束]'
         user = db.query(User).filter(User.ip == self.address).all()[-1]
         room = db.query(Room).filter(Room.id == user.room).all()[-1]
         users = db.query(User).filter(User.room == user.room).all()
@@ -303,14 +304,16 @@ class Connection(object):
         room.state = 0
 
     def send_json(self, json_data):
+        original = json.dumps(json_data)
+        print self.address + '\t < ' + original
         # Windows 编码转换
-        self.send_message(eval("u'%s'" % json.dumps(json_data)).encode("gbk") + '\0')
+        self.send_message(eval("u'%s'" % original).encode("gbk") + '\0')
 
     def send_message(self, data):
         self._stream.write(data)
 
     def on_close(self):
-        print self.address + '> [已断开]'
+        print self.address + '\t = [已断开]'
         Connection.clients.remove(self)
 
 
@@ -320,7 +323,7 @@ class GameServer(TCPServer):
 
 
 if __name__ == '__main__':
-    print('[服务器启动]')
+    print('127.0.0.1\t = [服务器启动]')
     server = GameServer()
     server.listen(8082)
     IOLoop.instance().start()
