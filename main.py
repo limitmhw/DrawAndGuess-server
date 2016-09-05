@@ -307,7 +307,7 @@ class Connection(object):
         self.send_message(message + '\n')
 
     def send_message(self, data):
-        self._stream.write(data)
+        self._stream.write(data.encode('utf-8'))
 
     def on_close(self):
         print self.address + '\t = [已断开]'
