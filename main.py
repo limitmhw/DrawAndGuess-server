@@ -302,12 +302,12 @@ class Connection(object):
         room.state = 0
 
     def send_json(self, json_data):
-        message = json.dumps(json_data)
+        message = json.dumps(json_data, ensure_ascii=False)
         print self.address + '\t < ' + message 
         self.send_message(message + '\n')
 
     def send_message(self, data):
-        self._stream.write(data.encode('utf-8'))
+        self._stream.write(data)
 
     def on_close(self):
         print self.address + '\t = [已断开]'
