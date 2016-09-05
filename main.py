@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+﻿#! /usr/bin/env python
 # coding=utf-8
 import json
 import sys
@@ -71,8 +71,6 @@ class Connection(object):
     # 分配到消息的处理
     def handle_message(self, data):
 
-        # Windows端的编码转换
-        data = data.decode('gbk').encode('utf-8')
         print self.address + '\t > ' + data.replace('\n', '')
         try:
             json_data = json.loads(data)
@@ -304,10 +302,9 @@ class Connection(object):
         room.state = 0
 
     def send_json(self, json_data):
-        original = json.dumps(json_data)
-        print self.address + '\t < ' + original
-        # Windows 编码转换
-        self.send_message(eval("u'%s'" % original).encode("gbk") + '\0')
+        message = json.dumps(json_data)
+        print self.address + '\t < ' + message 
+        self.send_message(message + '\n')
 
     def send_message(self, data):
         self._stream.write(data)
