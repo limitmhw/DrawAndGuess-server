@@ -117,23 +117,21 @@ class Connection(object):
                     player_list = list()
 
                     for remote_client in Connection.clients:
-                        print('1')
                         remote_address = remote_client.address
-                        print('2 ' + remote_address)
                         remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                        print('3')
                         if remote_user.room == room.id:
-                            remote_client.send_json(json_data)
-                            print('4')
-                            player_list.append(remote_user.nick)
-                            print('5')
+                            try:
+                                remote_client.send_json(json_data)
+                                player_list.append(remote_user.nick)
+                            except:
+                                print remote_address + ' = [SEND FAIL]'
 
                     self.send_json({'method': 'join_room', 'success': True, 'players': player_list})
 
                 except Exception as e:
                     db.rollback()
                     print str(e)
-                    self.send_json({'method': 'join_room', 'success': False, 'reason': u'加入房间失败, 可能是昵称过长或含有特殊字符, 请重试'})
+                    self.send_json({'method': 'join_room', 'success': False, 'reason': u'加入房间失败, 请重试'})
 
             # 准备游戏
             elif method == 'start_game':
