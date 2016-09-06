@@ -221,33 +221,40 @@ class Connection(object):
 
             # 退出房间
             elif method == 'exit_room':
-                print self.address + '\t = [EXIT ROOM]'
-
-                user = db.query(User).filter(User.ip == self.address).all()[-1]
-                room = db.query(Room).filter(Room.id == user.room).all()[-1]
-                if room.state == 1:
-                    self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
-                db.delete(user)
-                db.commit()
-
-                users = db.query(User).filter(User.room == room.id).all()
-                if len(users) == 0:
-                    db.delete(room)
-                    db.commit()
-
-                self.send_json({'method': 'exit_room', 'success': True})
-
-                for remote_client in Connection.clients:
-                    remote_address = remote_client.address
-                    remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                    remote_room = remote_user.room
-                    if remote_room == user.room:
-                        remote_client.send_json({'event': 'user_exit', 'nick': user.nick})
+                self.user_exit()
 
         except Exception as e:
             print self.address + '\t = [PARSE FAILURE]'
             self.send_json({'success': False, 'reason': '无法解析的命令'})
         self.read_message()
+
+    # 下线
+    def user_exit(self):
+        print self.address + '\t = [EXIT ROOM]'
+
+        user = db.query(User).filter(User.ip == self.address).all()[-1]
+        room = db.query(Room).filter(Room.id == user.room).all()[-1]
+        if room.state == 1:
+            self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
+        room_expired = user.state == 1
+        db.delete(user)
+        db.commit()
+
+        self.send_json({'method': 'exit_room', 'success': True})
+
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
+            remote_room = remote_user.room
+            if remote_room == user.room:
+                if room_expired:
+                    remote_client.send_json({'event': 'room_expire'})
+                else:
+                    remote_client.send_json({'event': 'user_exit', 'nick': user.nick})
+
+        if room_expired:
+            db.delete(room)
+            db.commit()
 
     # 新游戏
     def new_game(self):
@@ -316,27 +323,9 @@ class Connection(object):
 
     def on_close(self):
         print self.address + '\t = [DISCONNECTED]'
-        user = db.query(User).filter(User.ip == self.address).all()[-1]
-        room = db.query(Room).filter(Room.id == user.room).all()[-1]
+        self.user_exit()
 
         Connection.clients.remove(self)
-
-        # 通知其他人有人掉线
-        json_data = {'event': 'user_off', 'nick': user.nick}
-        db.delete(user)
-        db.commit()
-
-        for remote_client in Connection.clients:
-            remote_address = remote_client.address
-            remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-            if remote_user.room == room.id:
-                remote_client.send_json(json_data)
-
-        users = db.query(User).filter(User.room == room.id).all()
-        if len(users) == 0:
-            db.delete(room)
-            db.commit()
-
 
 class GameServer(TCPServer):
     def handle_stream(self, stream, address):
