@@ -24,7 +24,7 @@ Base = declarative_base()
 engine = create_engine('mysql://%s:%s@%s/%s?charset=utf8' % (DB_USER, DB_PWD, DB_HOST, DB_NAME), encoding='utf-8',
                        echo=False,
                        pool_size=100, pool_recycle=10)
-db = scoped_session(sessionmaker(bind=engine, autocommit=True, autoflush=True, expire_on_commit=False))
+db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True, expire_on_commit=False))
 max_round = 2
 
 
