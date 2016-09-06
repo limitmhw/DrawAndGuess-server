@@ -117,8 +117,11 @@ class Connection(object):
                     player_list = list()
 
                     for remote_client in Connection.clients:
+                        print('1')
                         remote_address = remote_client.address
+                        print('2 ' + remote_address)
                         remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
+                        print('3')
                         if remote_user.room == room.id:
                             remote_client.send_json(json_data)
                             player_list.append(remote_user.nick)
