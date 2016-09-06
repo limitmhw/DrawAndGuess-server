@@ -127,6 +127,7 @@ class Connection(object):
 
                 except Exception as e:
                     db.rollback()
+                    print(e)
                     self.send_json({'method': 'join_room', 'success': False, 'reason': u'加入房间失败, 可能是昵称过长或含有特殊字符, 请重试'})
 
             # 准备游戏
