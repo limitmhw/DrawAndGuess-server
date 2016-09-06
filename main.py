@@ -113,14 +113,13 @@ class Connection(object):
                     db.commit()
 
                     # 通知其他人有人加入房间
-                    json_data = {'event': 'user_join', 'nick': nick}
-                    player_list = list()
+                    player_list = []
 
                     for remote_client in Connection.clients:
                         remote_address = remote_client.address
                         remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
                         if remote_user.room == room.id:
-                            remote_client.send_json(json_data)
+                            remote_client.send_json({'event': 'user_join', 'nick': nick})
                             player_list.append(remote_user.nick)
 
                     self.send_json({'method': 'join_room', 'success': True, 'players': player_list})
@@ -308,7 +307,10 @@ class Connection(object):
         self.send_message(message + '\n')
 
     def send_message(self, data):
-        self._stream.write(data)
+        if isinstance(data, bytes):
+            self._stream.write(data)
+        else:
+            print self.address + '\t = [ASSERTION ERROR]'
 
     def on_close(self):
         print self.address + '\t = [DISCONNECTED]'
