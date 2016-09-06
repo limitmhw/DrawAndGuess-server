@@ -306,8 +306,6 @@ class Connection(object):
         message = json.dumps(json_data, ensure_ascii=False)
         print self.address + '\t < ' + message 
         self.send_message(message + '\n')
-        self.send_message("Hello, World! 1!" + '\n')
-        self.send_message("Hello, World! 2!" + '\n')
 
     def send_message(self, data):
         if isinstance(data.encode('utf-8'), bytes):
