@@ -120,7 +120,7 @@ class Connection(object):
                         remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
                         if remote_user.room == room.id:
                             try:
-                                remote_client.send_json(json_data)
+                                remote_client.send_json({'event': 'user_join', 'nick': nick})
                                 player_list.append(remote_user.nick)
                             except:
                                 print remote_address + ' = [SEND FAIL]'
