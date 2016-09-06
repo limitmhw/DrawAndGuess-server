@@ -49,7 +49,7 @@ class User(Base):
 
 # 服务器逻辑
 class Connection(object):
-    # 静态集合, 保存所有连接
+    # 静态列表, 保存所有连接
     clients = list()
 
     # 新用户连接
@@ -57,7 +57,7 @@ class Connection(object):
         print address[0] + '\t = [CONNECTED]'
 
         # 注册连接
-        Connection.clients.add(self)
+        Connection.clients.append(self)
 
         self._stream = stream
         self.address = address[0]
