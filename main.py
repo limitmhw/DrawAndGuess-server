@@ -118,6 +118,7 @@ class Connection(object):
                     for remote_client in Connection.clients:
                         remote_address = remote_client.address
                         remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
+
                         if remote_user.room == room.id:
                             remote_client.send_json({'event': 'user_join', 'nick': nick})
                             player_list.append(remote_user.nick)
@@ -305,6 +306,8 @@ class Connection(object):
         message = json.dumps(json_data, ensure_ascii=False)
         print self.address + '\t < ' + message 
         self.send_message(message + '\n')
+        self.send_message("Hello, World! 1!" + '\n')
+        self.send_message("Hello, World! 2!" + '\n')
 
     def send_message(self, data):
         if isinstance(data.encode('utf-8'), bytes):
