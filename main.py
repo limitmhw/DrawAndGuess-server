@@ -24,7 +24,7 @@ Base = declarative_base()
 engine = create_engine('mysql://%s:%s@%s/%s?charset=utf8' % (DB_USER, DB_PWD, DB_HOST, DB_NAME), encoding='utf-8',
                        echo=False,
                        pool_size=100, pool_recycle=10)
-db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True, expire_on_commit=False))
+db = scoped_session(sessionmaker(bind=engine, autocommit=True, autoflush=True, expire_on_commit=False))
 max_round = 2
 
 
@@ -117,16 +117,11 @@ class Connection(object):
                     player_list = list()
 
                     for remote_client in Connection.clients:
-                        print('1')
                         remote_address = remote_client.address
-                        print('2 ' + remote_address)
                         remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                        print('3')
                         if remote_user.room == room.id:
                             remote_client.send_json(json_data)
-                            print('4')
                             player_list.append(remote_user.nick)
-                            print('5')
 
                     self.send_json({'method': 'join_room', 'success': True, 'players': player_list})
 
@@ -317,7 +312,26 @@ class Connection(object):
 
     def on_close(self):
         print self.address + '\t = [已断开]'
+        user = db.query(User).filter(User.ip == self.address).all()[-1]
+        room = db.query(Room).filter(Room.id == user.room).all()[-1]
+
         Connection.clients.remove(self)
+
+        # 通知其他人有人掉线
+        json_data = {'event': 'user_off', 'nick': user.nick}
+        db.delete(user)
+        db.commit()
+
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
+            if remote_user.room == room.id:
+                remote_client.send_json(json_data)
+
+        users = db.query(User).filter(User.room == room.id).all()
+        if len(users) == 0:
+            db.delete(room)
+            db.commit()
 
 
 class GameServer(TCPServer):
