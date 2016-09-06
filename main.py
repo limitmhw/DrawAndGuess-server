@@ -307,8 +307,8 @@ class Connection(object):
         self.send_message(message + '\n')
 
     def send_message(self, data):
-        if isinstance(data, bytes):
-            self._stream.write(data)
+        if isinstance(data.encode('utf-8'), bytes):
+            self._stream.write(data.encode('utf-8'))
         else:
             print self.address + '\t = [ASSERTION ERROR]'
 
