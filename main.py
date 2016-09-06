@@ -124,7 +124,9 @@ class Connection(object):
                         print('3')
                         if remote_user.room == room.id:
                             remote_client.send_json(json_data)
+                            print('4')
                             player_list.append(remote_user.nick)
+                            print('5')
 
                     self.send_json({'method': 'join_room', 'success': True, 'players': player_list})
 
