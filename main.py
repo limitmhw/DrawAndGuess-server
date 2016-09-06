@@ -240,17 +240,23 @@ class Connection(object):
         db.delete(user)
         db.commit()
 
-        self.send_json({'method': 'exit_room', 'success': True})
+        try:
+            self.send_json({'method': 'exit_room', 'success': True})
+        except: 
+            pass
 
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
             remote_room = remote_user.room
             if remote_room == user.room:
-                if room_expired:
-                    remote_client.send_json({'event': 'room_expire'})
-                else:
-                    remote_client.send_json({'event': 'user_exit', 'nick': user.nick})
+                try:
+                    if room_expired:
+                        remote_client.send_json({'event': 'room_expire'})
+                    else:
+                        remote_client.send_json({'event': 'user_exit', 'nick': user.nick})
+                except:
+                    pass
 
         if room_expired:
             db.delete(room)
