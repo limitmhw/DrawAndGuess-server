@@ -50,7 +50,7 @@ class User(Base):
 # 服务器逻辑
 class Connection(object):
     # 静态集合, 保存所有连接
-    clients = set()
+    clients = list()
 
     # 新用户连接
     def __init__(self, stream, address):
