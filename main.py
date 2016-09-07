@@ -88,6 +88,7 @@ class Connection(object):
 
     def get_user_nicks_in_current_room(self):
         result = list()
+        print Connection.clients
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_users = db.query(User).filter(User.ip == remote_address).all()
