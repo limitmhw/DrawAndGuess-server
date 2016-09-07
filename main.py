@@ -199,8 +199,8 @@ class Connection(object):
                 print self.address + '\t = [START GAME]'
 
                 if self.get_current_user().state == 1:
-                    self.new_game()
                     self.send_json({'method': 'start_game', 'success': True})
+                    self.new_game()
 
                 else:
                     self.send_json({'method': 'start_game', 'success': False, 'reason': u'不是房主, 不能开始游戏'})
