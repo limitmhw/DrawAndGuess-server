@@ -253,6 +253,8 @@ class Connection(object):
 
         for remote_client in Connection.clients:
             remote_address = remote_client.address
+            if len(db.query(User).filter(User.ip == remote_address).all()) < 1:
+                continue
             remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
             remote_room = remote_user.room
             if remote_room == user.room:
