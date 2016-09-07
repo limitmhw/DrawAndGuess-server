@@ -94,7 +94,7 @@ class Connection(object):
                     print(e)
                     db.rollback()
                     self.send_json(
-                        {'method': 'create_room', 'success': False, 'reason': u'创建房间失败, 可能是昵称过长或含有特殊字符, 请重试'})
+                        {'method': 'create_room', 'success': False, 'reason': u'连接数据库失败，请重试'})
 
             # 加入房间
             elif method == 'join_room':
@@ -117,13 +117,16 @@ class Connection(object):
 
                     for remote_client in Connection.clients:
                         remote_address = remote_client.address
-                        remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
+                        records = db.query(User).filter(User.ip == remote_address).all()
+                        if len(records) < 1:
+                            continue
+                        remote_user = records[-1]
                         if remote_user.room == room.id:
                             try:
                                 remote_client.send_json({'event': 'user_join', 'nick': nick})
                                 player_list.append(remote_user.nick)
                             except:
-                                print remote_address + ' = [SEND FAIL]'
+                                print remote_address + '\t = [SEND FAIL]'
                     self.send_json({'method': 'join_room', 'success': True, 'players': player_list})
 
                 except Exception as e:
@@ -232,13 +235,16 @@ class Connection(object):
     def user_exit(self):
         print self.address + '\t = [EXIT ROOM]'
 
-        user = db.query(User).filter(User.ip == self.address).all()[-1]
-        room = db.query(Room).filter(Room.id == user.room).all()[-1]
-        if room.state == 1:
-            self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
-        room_expired = user.state == 1
-        db.delete(user)
-        db.commit()
+        users = db.query(User).filter(User.ip == self.address).all()
+        if len(users) > 0:
+            user = users[-1]
+            room = db.query(Room).filter(Room.id == user.room).all()[-1]
+            if room.state == 1:
+                self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
+                return
+            room_expired = user.state == 1
+            db.delete(user)
+            db.commit()
 
         try:
             self.send_json({'method': 'exit_room', 'success': True})
