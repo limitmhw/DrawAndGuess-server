@@ -323,7 +323,7 @@ class Connection(object):
         for client in self.get_connections_in_current_room():
             remote_user = client.get_current_user()
             if remote_user.room == room.id:
-                client.send_json({'event': 'game_start', 'players': self.get_user_nicks_in_current_room()})
+                client.send_json({'event': 'game_start', 'round': room.round, 'players': self.get_user_nicks_in_current_room()})
                 if remote_user.state == 2:
                     client.send_json({'event': 'generate_word', 'word': word})
                 elif remote_user.state == 3:
