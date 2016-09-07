@@ -296,6 +296,7 @@ class Connection(object):
             remote_address = remote_client.address
             remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
             if remote_user.room == room.id:
+                remote_client.send_json({'event': 'game_start'})
                 if remote_user.state == 2:
                     remote_client.send_json({'event': 'generate_word', 'word': word})
                 elif remote_user.state == 3:
