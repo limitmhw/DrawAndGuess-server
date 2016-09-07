@@ -54,10 +54,9 @@ class Connection(object):
 
     # 新用户连接
     def __init__(self, stream, address):
-        print address[0] + '\t = [CONNECTED] Total clients: ' + str(len(Connection.clients))
-
         # 注册连接
         Connection.clients.append(self)
+        print address[0] + '\t = [CONNECTED] Total clients: ' + str(len(Connection.clients))
 
         self._stream = stream
         self.address = address[0]
@@ -365,9 +364,9 @@ class Connection(object):
 
     def on_close(self):
         self.user_exit()
-        print self.address + '\t = [DISCONNECTED] Total clients: ' + str(len(Connection.clients))
 
         Connection.clients.remove(self)
+        print self.address + '\t = [DISCONNECTED] Total clients: ' + str(len(Connection.clients))
 
 class GameServer(TCPServer):
     def handle_stream(self, stream, address):
