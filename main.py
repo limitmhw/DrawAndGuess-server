@@ -68,6 +68,76 @@ class Connection(object):
     def read_message(self):
         self._stream.read_until('\n', self.handle_message)
 
+    def has_current_user(self):
+        return len(db.query(User).filter(User.ip == self.address).all()) > 0
+
+    def get_current_user(self):
+        try:
+            return db.query(User).filter(User.ip == self.address).all()[-1]
+        except:
+            return None
+
+    def has_current_room(self):
+        return len(db.query(Room).filter(Room.id == self.get_current_user().room).all()) > 0
+
+    def get_current_room(self):
+        try:
+            return db.query(Room).filter(Room.id == self.get_current_user().room).all()[-1]
+        except:
+            return None
+
+    def get_user_nicks_in_current_room(self):
+        result = list()
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            remote_users = db.query(User).filter(User.ip == remote_address).all()
+            remote_user = remote_users[-1]
+            if len(remote_users) <= 0:
+                continue
+            remote_room = remote_user.room
+            if remote_room == self.get_current_user().room:
+                result.append(remote_user.nick)
+        return result
+
+    def get_users_in_current_room(self):
+        result = list()
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            remote_users = db.query(User).filter(User.ip == remote_address).all()
+            remote_user = remote_users[-1]
+            if len(remote_users) <= 0:
+                continue
+            remote_room = remote_user.room
+            if remote_room == self.get_current_user().room:
+                result.append(remote_user)
+        return result
+
+    def get_connections_in_current_room(self):
+        result = list()
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            remote_users = db.query(User).filter(User.ip == remote_address).all()
+            remote_user = remote_users[-1]
+            if len(remote_users) <= 0:
+                continue
+            remote_room = remote_user.room
+            if remote_room == self.get_current_user().room:
+                result.append(remote_client)
+        return result
+
+    def get_other_connections_in_current_room(self):
+        result = list()
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            remote_users = db.query(User).filter(User.ip == remote_address).all()
+            remote_user = remote_users[-1]
+            if len(remote_users) <= 0:
+                continue
+            remote_room = remote_user.room
+            if remote_room == self.get_current_user().room and remote_user.id != self.get_current_user().id:
+                result.append(remote_client)
+        return result
+
     # 分配到消息的处理
     def handle_message(self, data):
 
@@ -112,22 +182,12 @@ class Connection(object):
                     db.add(user)
                     db.commit()
 
-                    # 通知其他人有人加入房间
-                    player_list = []
+                    self.send_json(
+                        {'method': 'join_room', 'success': True, 'players': self.get_user_nicks_in_current_room()})
 
-                    for remote_client in Connection.clients:
-                        remote_address = remote_client.address
-                        records = db.query(User).filter(User.ip == remote_address).all()
-                        if len(records) < 1:
-                            continue
-                        remote_user = records[-1]
-                        if remote_user.room == room.id:
-                            try:
-                                remote_client.send_json({'event': 'user_join', 'nick': nick})
-                                player_list.append(remote_user.nick)
-                            except:
-                                print remote_address + '\t = [SEND FAIL]'
-                    self.send_json({'method': 'join_room', 'success': True, 'players': player_list})
+                    # 通知其他人有人加入房间
+                    for client in self.get_other_connections_in_current_room():
+                        client.send_json({'event': 'user_join', 'nick': nick})
 
                 except Exception as e:
                     db.rollback()
@@ -138,8 +198,7 @@ class Connection(object):
             elif method == 'start_game':
                 print self.address + '\t = [START GAME]'
 
-                user = db.query(User).filter(User.ip == self.address).all()[-1]
-                if user.state == 1:
+                if self.get_current_user().state == 1:
                     self.new_game()
                     self.send_json({'method': 'start_game', 'success': True})
 
@@ -150,58 +209,43 @@ class Connection(object):
             elif method == 'update_pic':
                 print self.address + '\t = [UPDATE PIC]'
 
-                user = db.query(User).filter(User.ip == self.address).all()[-1]
                 x = json_data['x']
                 y = json_data['y']
                 new_line = json_data['new_line']
                 self.send_json({'method': 'update_pic', 'success': True})
                 json_resp = {'event': 'pic_updated', 'x': x, 'y': y, 'new_line': new_line}
 
-                for remote_client in Connection.clients:
-                    remote_address = remote_client.address
-                    remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                    remote_room = remote_user.room
-                    if remote_room == user.room and remote_user.id != user.id:
-                        remote_client.send_json(json_resp)
+                for client in self.get_other_connections_in_current_room():
+                    client.send_json(json_resp)
 
             # 更新提示, 此事件是由擂主所在客户端主动发起
             elif method == 'update_hint':
                 print self.address + '\t = [UPDATE HINT]'
 
-                user = db.query(User).filter(User.ip == self.address).all()[-1]
                 hint = json_data['hint']
                 self.send_json({'method': 'update_hint', 'success': True})
                 json_resp = {'event': 'hint_updated', 'hint': hint}
 
-                for remote_client in Connection.clients:
-                    remote_address = remote_client.address
-                    remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                    remote_room = remote_user.room
-                    if remote_room == user.room:
-                        remote_client.send_json(json_resp)
+                for client in self.get_connections_in_current_room():
+                    client.send_json(json_resp)
 
             # 提交答案
             elif method == 'submit_answer':
                 print self.address + '\t = [SUBMIT ANSWER]'
 
-                user = db.query(User).filter(User.ip == self.address).all()[-1]
-                room = db.query(Room).filter(Room.id == user.room).all()[-1]
                 answer = json_data['answer']
-                right_answer = room.curr_word
+                right_answer = self.get_current_room().curr_word
                 win = answer == right_answer
 
                 self.send_json({'method': 'submit_answer', 'success': True, 'win': win})
                 if win:
-                    json_resp = {'event': 'answer_submitted', 'nick': user.nick, 'win': True}
+                    json_resp = {'event': 'answer_submitted', 'nick': self.get_current_user().nick, 'win': True}
                 else:
-                    json_resp = {'event': 'answer_submitted', 'nick': user.nick, 'win': False, 'answer': answer}
+                    json_resp = {'event': 'answer_submitted', 'nick': self.get_current_user().nick, 'win': False,
+                                 'answer': answer}
 
-                for remote_client in Connection.clients:
-                    remote_address = remote_client.address
-                    remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                    remote_room = remote_user.room
-                    if remote_room == user.room:
-                        remote_client.send_json(json_resp)
+                for client in self.get_other_connections_in_current_room():
+                    client.send_json(json_resp)
 
             # 时间到, 此事件是由擂主所在客户端发起
             elif method == 'time_up':
@@ -211,12 +255,8 @@ class Connection(object):
                 self.send_json({'method': 'time_up', 'success': True})
                 json_resp = {'event': 'time_up'}
 
-                for remote_client in Connection.clients:
-                    remote_address = remote_client.address
-                    remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-                    remote_room = remote_user.room
-                    if remote_room == user.room:
-                        remote_client.send_json(json_resp)
+                for client in self.get_connections_in_current_room():
+                    client.send_json(json_resp)
 
                 self.new_game()
 
@@ -234,46 +274,30 @@ class Connection(object):
     def user_exit(self):
         print self.address + '\t = [EXIT ROOM]'
 
-        users = db.query(User).filter(User.ip == self.address).all()
-        if len(users) > 0:
-            user = users[-1]
-            room = db.query(Room).filter(Room.id == user.room).all()[-1]
-            if room.state == 1:
-                self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
-                return
-            room_expired = user.state == 1
-            db.delete(user)
-            db.commit()
+        if self.get_current_room() is not None and self.get_current_room().state == 1:
+            self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
+            return
+        user = self.get_current_user()
+        room_expired = user.state == 1
+        db.delete(user)
+        db.commit()
 
-        try:
-            self.send_json({'method': 'exit_room', 'success': True})
-        except: 
-            pass
+        self.send_json({'method': 'exit_room', 'success': True})
 
-        for remote_client in Connection.clients:
-            remote_address = remote_client.address
-            if len(db.query(User).filter(User.ip == remote_address).all()) < 1:
-                continue
-            remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-            remote_room = remote_user.room
-            if remote_room == user.room:
-                try:
-                    if room_expired:
-                        remote_client.send_json({'event': 'room_expire'})
-                    else:
-                        remote_client.send_json({'event': 'user_exit', 'nick': user.nick})
-                except:
-                    pass
+        for client in self.get_other_connections_in_current_room():
+            if room_expired:
+                client.send_json({'event': 'room_expire'})
+            else:
+                client.send_json({'event': 'user_exit', 'nick': user.nick})
 
         if room_expired:
-            db.delete(room)
+            db.delete(self.get_current_room())
             db.commit()
 
     # 新游戏
     def new_game(self):
-        user = db.query(User).filter(User.ip == self.address).all()[-1]
-        room = db.query(Room).filter(Room.id == user.room).all()[-1]
-        users = db.query(User).filter(User.room == room.id).all()
+        users = self.get_users_in_current_room()
+        room = self.get_current_room()
         user_count = len(users)
         current_index = user_count - 1
         for i in range(user_count):
@@ -293,26 +317,18 @@ class Connection(object):
         word = self.generate_word()
         room.curr_word = word
 
+        db.commit()
+
         player_list = []
 
-        for remote_client in Connection.clients:
-            remote_address = remote_client.address
-            records = db.query(User).filter(User.ip == remote_address).all()
-            if len(records) < 1:
-                continue
-            remote_user = records[-1]
+        for client in self.get_connections_in_current_room():
+            remote_user = client.get_current_user()
             if remote_user.room == room.id:
-                player_list.append(remote_user.nick)
-
-        for remote_client in Connection.clients:
-            remote_address = remote_client.address
-            remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-            if remote_user.room == room.id:
-                remote_client.send_json({'event': 'game_start', 'players': player_list})
+                client.send_json({'event': 'game_start', 'players': player_list})
                 if remote_user.state == 2:
-                    remote_client.send_json({'event': 'generate_word', 'word': word})
+                    client.send_json({'event': 'generate_word', 'word': word})
                 elif remote_user.state == 3:
-                    remote_client.send_json({'event': 'word_generated', 'nick': users[next_index].nick})
+                    client.send_json({'event': 'word_generated', 'nick': users[next_index].nick})
 
     # 分配词语
     def generate_word(self):
@@ -321,24 +337,27 @@ class Connection(object):
     # 游戏结束
     def end_game(self):
         print self.address + '\t = [GAME END]'
-        user = db.query(User).filter(User.ip == self.address).all()[-1]
-        room = db.query(Room).filter(Room.id == user.room).all()[-1]
-        users = db.query(User).filter(User.room == user.room).all()
-        for remote_client in Connection.clients:
-            remote_address = remote_client.address
-            remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
-            if remote_user.room == room.id:
-                remote_client.send_json({'event': 'game_end'})
+        for client in self.get_connections_in_current_room():
+            remote_user = client.get_current_user()
+            if remote_user.room == self.get_current_room().id:
+                client.send_json({'event': 'game_end'})
+
+        users = self.get_users_in_current_room()
+        room = self.get_current_room()
         for remote_user in users:
             remote_user.state = 0
         if len(users) > 0:
             users[0].state = 1
         room.state = 0
+        db.commit()
 
     def send_json(self, json_data):
-        message = json.dumps(json_data, ensure_ascii=False)
-        print self.address + '\t < ' + message 
-        self.send_message(message + '\n')
+        try:
+            message = json.dumps(json_data, ensure_ascii=False)
+            self.send_message(message + '\n')
+            print self.address + '\t < ' + message
+        except:
+            pass
 
     def send_message(self, data):
         if isinstance(data.encode('utf-8'), bytes):
