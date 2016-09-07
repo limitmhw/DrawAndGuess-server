@@ -292,11 +292,22 @@ class Connection(object):
         word = self.generate_word()
         room.curr_word = word
 
+        player_list = []
+
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            records = db.query(User).filter(User.ip == remote_address).all()
+            if len(records) < 1:
+                continue
+            remote_user = records[-1]
+            if remote_user.room == room.id:
+                player_list.append(remote_user.nick)
+
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_user = db.query(User).filter(User.ip == remote_address).all()[-1]
             if remote_user.room == room.id:
-                remote_client.send_json({'event': 'game_start'})
+                remote_client.send_json({'event': 'game_start', 'players': player_list})
                 if remote_user.state == 2:
                     remote_client.send_json({'event': 'generate_word', 'word': word})
                 elif remote_user.state == 3:
