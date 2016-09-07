@@ -145,8 +145,6 @@ class Connection(object):
 
                 else:
                     self.send_json({'method': 'start_game', 'success': False, 'reason': u'不是房主, 不能开始游戏'})
-                    self.read_message()
-                    return
 
             # 更新绘图
             elif method == 'update_pic':
@@ -227,8 +225,9 @@ class Connection(object):
                 self.user_exit()
 
         except Exception as e:
-            print self.address + '\t = [PARSE FAILURE]'
-            self.send_json({'success': False, 'reason': '无法解析的命令'})
+            print str(e)
+            print self.address + '\t = [UNKNOWN ERROR]'
+            self.send_json({'success': False, 'reason': '未知错误'})
         self.read_message()
 
     # 下线
