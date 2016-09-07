@@ -364,8 +364,8 @@ class Connection(object):
             print self.address + '\t = [ASSERTION ERROR]'
 
     def on_close(self):
-        print self.address + '\t = [DISCONNECTED] Total clients: ' + len(Connection.clients)
         self.user_exit()
+        print self.address + '\t = [DISCONNECTED] Total clients: ' + len(Connection.clients)
 
         Connection.clients.remove(self)
 
