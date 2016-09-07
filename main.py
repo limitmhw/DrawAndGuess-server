@@ -54,7 +54,7 @@ class Connection(object):
 
     # 新用户连接
     def __init__(self, stream, address):
-        print address[0] + '\t = [CONNECTED]'
+        print address[0] + '\t = [CONNECTED] Total clients: ' + len(Connection.clients)
 
         # 注册连接
         Connection.clients.append(self)
@@ -88,7 +88,6 @@ class Connection(object):
 
     def get_user_nicks_in_current_room(self):
         result = list()
-        print Connection.clients
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_users = db.query(User).filter(User.ip == remote_address).all()
@@ -365,7 +364,7 @@ class Connection(object):
             print self.address + '\t = [ASSERTION ERROR]'
 
     def on_close(self):
-        print self.address + '\t = [DISCONNECTED]'
+        print self.address + '\t = [DISCONNECTED] Total clients: ' + len(Connection.clients)
         self.user_exit()
 
         Connection.clients.remove(self)
