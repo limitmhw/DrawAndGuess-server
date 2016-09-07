@@ -94,7 +94,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room:
                 result.append(remote_user.nick)
         return result
 
@@ -107,7 +107,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room:
                 result.append(remote_user)
         return result
 
@@ -120,7 +120,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room:
                 result.append(remote_client)
         return result
 
@@ -133,7 +133,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room and remote_user.id != self.get_current_user().id:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room and remote_user.id != self.get_current_user().id:
                 result.append(remote_client)
         return result
 
@@ -277,7 +277,7 @@ class Connection(object):
             self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
             return
         user = self.get_current_user()
-        room_expired = user.state == 1
+        room_expired = user is not None and user.state == 1
         db.delete(user)
         db.commit()
 
