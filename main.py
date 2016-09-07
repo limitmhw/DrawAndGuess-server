@@ -91,9 +91,9 @@ class Connection(object):
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_users = db.query(User).filter(User.ip == remote_address).all()
-            remote_user = remote_users[-1]
             if len(remote_users) <= 0:
                 continue
+            remote_user = remote_users[-1]
             remote_room = remote_user.room
             if remote_room == self.get_current_user().room:
                 result.append(remote_user.nick)
@@ -104,9 +104,9 @@ class Connection(object):
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_users = db.query(User).filter(User.ip == remote_address).all()
-            remote_user = remote_users[-1]
             if len(remote_users) <= 0:
                 continue
+            remote_user = remote_users[-1]
             remote_room = remote_user.room
             if remote_room == self.get_current_user().room:
                 result.append(remote_user)
@@ -117,9 +117,9 @@ class Connection(object):
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_users = db.query(User).filter(User.ip == remote_address).all()
-            remote_user = remote_users[-1]
             if len(remote_users) <= 0:
                 continue
+            remote_user = remote_users[-1]
             remote_room = remote_user.room
             if remote_room == self.get_current_user().room:
                 result.append(remote_client)
@@ -130,9 +130,9 @@ class Connection(object):
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_users = db.query(User).filter(User.ip == remote_address).all()
-            remote_user = remote_users[-1]
             if len(remote_users) <= 0:
                 continue
+            remote_user = remote_users[-1]
             remote_room = remote_user.room
             if remote_room == self.get_current_user().room and remote_user.id != self.get_current_user().id:
                 result.append(remote_client)
