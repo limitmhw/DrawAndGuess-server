@@ -278,8 +278,9 @@ class Connection(object):
             return
         user = self.get_current_user()
         room_expired = user is not None and user.state == 1
-        db.delete(user)
-        db.commit()
+        if user is not None:
+            db.delete(user)
+            db.commit()
 
         self.send_json({'method': 'exit_room', 'success': True})
 
@@ -289,8 +290,9 @@ class Connection(object):
             else:
                 client.send_json({'event': 'user_exit', 'nick': user.nick})
 
-        if room_expired:
-            db.delete(self.get_current_room())
+        room = self.get_current_room()
+        if room_expired and room is not None:
+            db.delete(room)
             db.commit()
 
     # 新游戏
