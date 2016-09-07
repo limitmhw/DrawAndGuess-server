@@ -308,7 +308,7 @@ class Connection(object):
         if current_index + 1 >= user_count:
             room.round += 1
 
-        if room.round >= max_round:
+        if room.round > max_round:
             self.end_game()
             return
         next_index = (current_index + 1) % user_count
