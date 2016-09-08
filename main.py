@@ -244,6 +244,17 @@ class Connection(object):
                 for client in self.get_connections_in_current_room():
                     client.send_json(json_resp)
 
+            # 更新提示, 此事件是由擂主所在客户端主动发起
+            elif method == 'change_color':
+                print self.address + '\t = [CHANGE COLOR]'
+
+                color = json_data['color']
+                self.send_json({'method': 'change_color', 'success': True})
+                json_resp = {'event': 'color_changed', 'color': color}
+
+                for client in self.get_connections_in_current_room():
+                    client.send_json(json_resp)
+
             # 提交答案
             elif method == 'submit_answer':
                 print self.address + '\t = [SUBMIT ANSWER]'
