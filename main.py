@@ -320,13 +320,8 @@ class Connection(object):
         print self.address + '\t = [EXIT ROOM]'
 
         user = self.get_current_user()
+        room = self.get_current_room()
         room_expired = user is not None and user.state >= 1
-        print str(room_expired)
-        if user is not None:
-            db.delete(user)
-            db.commit()
-
-        self.send_json({'method': 'exit_room', 'success': True})
 
         for client in self.get_other_connections_in_current_room():
             if room_expired:
@@ -334,7 +329,11 @@ class Connection(object):
             else:
                 client.send_json({'event': 'user_exit', 'nick': user.nick})
 
-        room = self.get_current_room()
+        if user is not None:
+            db.delete(user)
+            db.commit()
+
+        self.send_json({'method': 'exit_room', 'success': True})
         if room_expired and room is not None:
             db.delete(room)
             db.commit()
@@ -404,6 +403,7 @@ class Connection(object):
         try:
             message = json.dumps(json_data, ensure_ascii=False)
             self.send_message(message + '\n')
+            if message.index('')
             print self.address + '\t < ' + message
         except:
             pass
