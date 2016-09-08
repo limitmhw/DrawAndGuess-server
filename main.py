@@ -2,6 +2,7 @@
 # coding=utf-8
 import json
 import sys
+import random
 
 from sqlalchemy import Column
 from sqlalchemy import Integer
@@ -324,6 +325,7 @@ class Connection(object):
     def new_game(self):
         users = self.get_users_in_current_room()
         room = self.get_current_room()
+        room.state = 1
         user_count = len(users)
         current_index = user_count - 1
         for i in range(user_count):
@@ -356,7 +358,11 @@ class Connection(object):
 
     # 分配词语
     def generate_word(self):
-        return '测试词语'
+        words = '大象，敲门，西瓜，举重，手机，打嗝，牙疼，嗑瓜子，蹲下，灭火器，孙悟空，猩猩，吃面条，香蕉，拍球，拳击，睡觉，打麻将，雨伞，主持人，刮胡子，刷牙。企鹅，乒乓球，唇膏，武术，看书，洗头，流口水，升国旗，长颈鹿，公鸡，鸭子，跳舞，游泳，榴莲，遛狗，害羞，喝水，扔铅球，遥控器，高跟鞋，眼睫毛，拍马屁，剪指甲，猪，眼镜，跨栏，握手，蝴蝶，骑马，跳绳，广播体操，求婚，系鞋带，喷香水，兔子，跑步，篮球，电话，洗澡，拔河，扭秧歌，照镜子，奥特曼，捡钱包，放风筝，老鹰，金鸡独立，鸡犬不宁，垂头丧气，一刀两断，哑口无言，左顾右盼，直升飞机，东张西望，三长两短，心口如一，大摇大摆，龟兔赛跑，目瞪口呆，破涕为笑，眉飞色舞，满地找牙，五体投地，一无所有，睡眼朦胧，比翼双飞，大眼瞪小眼，一瘸一拐，闻鸡起舞，一手遮天，捧腹大笑，心急如焚，狼吞虎咽，花枝招展，七零八落，鸡飞狗跳，张牙舞爪、抓耳挠腮，嬉皮笑脸，连滚带爬，掩耳盗铃，手忙脚乱，手舞足蹈，张牙舞爪，婀娜多姿，婀娜多姿，挥汗如雨，纸上谈兵，含情脉脉，望梅止渴，一针见血，大手大脚，左右为难，虎头蛇尾，一分为二，回眸一笑，恍然大悟，上蹿下跳，狗急跳墙，画饼充饥，晕头转向，七上八下'
+        word_arr = words.split('，')
+        arr_len = len(words)
+        index = random.randint(0, arr_len - 1)
+        return word_arr[index]
 
     # 游戏结束
     def end_game(self):
