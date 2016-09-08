@@ -278,7 +278,6 @@ class Connection(object):
             elif method == 'time_up':
                 print self.address + '\t = [TIME UP]'
 
-                user = db.query(User).filter(User.ip == self.address).all()[-1]
                 self.send_json({'method': 'time_up', 'success': True})
                 json_resp = {'event': 'time_up'}
 
@@ -325,7 +324,8 @@ class Connection(object):
     def new_game(self):
         users = self.get_users_in_current_room()
         room = self.get_current_room()
-        room.state = 1
+        if room is not None:
+            room.state = 1
         user_count = len(users)
         current_index = user_count - 1
         for i in range(user_count):
