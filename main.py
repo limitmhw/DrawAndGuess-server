@@ -154,8 +154,7 @@ class Connection(object):
 
     # 分配到消息的处理
     def handle_message(self, data):
-
-        print self.address + '\t > ' + data.replace('\n', '')
+        # print self.address + '\t > ' + data.replace('\n', '')
         try:
             json_data = json.loads(data)
             method = json_data['method']
@@ -403,8 +402,8 @@ class Connection(object):
         try:
             message = json.dumps(json_data, ensure_ascii=False)
             self.send_message(message + '\n')
-            if message.index('update_pic') < 0 and message.index('pic_updated') < 0:
-                print self.address + '\t < ' + message
+            
+            # print self.address + '\t < ' + message
         except:
             pass
 
