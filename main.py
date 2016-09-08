@@ -3,6 +3,7 @@
 import json
 import sys
 import random
+import traceback
 
 from sqlalchemy import Column
 from sqlalchemy import Integer
