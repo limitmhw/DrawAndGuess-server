@@ -100,6 +100,19 @@ class Connection(object):
                 result.append(remote_user.nick)
         return result
 
+    def get_user_nicks_in_room(self, room):
+        result = list()
+        for remote_client in Connection.clients:
+            remote_address = remote_client.address
+            remote_users = db.query(User).filter(User.ip == remote_address).all()
+            if len(remote_users) <= 0:
+                continue
+            remote_user = remote_users[-1]
+            remote_room = remote_user.room
+            if remote_room == room:
+                result.append(remote_user.nick)
+        return result
+
     def get_users_in_current_room(self):
         result = list()
         for remote_client in Connection.clients:
@@ -184,6 +197,11 @@ class Connection(object):
                         return
 
                     nick = json_data['nick']
+                    if nick in self.get_user_nicks_in_room(room.id):
+                        self.send_json({'method': 'join_room', 'success': False, 'reason': '该房间已有重复昵称，请更换'})
+                        self.read_message()  # 进入下次I/O循环
+                        return
+                    
                     user = User(ip=self.address, nick=nick, room=room.id, state=0)
                     db.add(user)
                     db.commit()
@@ -303,6 +321,7 @@ class Connection(object):
 
         user = self.get_current_user()
         room_expired = user is not None and user.state >= 1
+        print str(room_expired)
         if user is not None:
             db.delete(user)
             db.commit()
