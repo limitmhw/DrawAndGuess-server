@@ -54,10 +54,9 @@ class Connection(object):
 
     # 新用户连接
     def __init__(self, stream, address):
-        print address[0] + '\t = [CONNECTED]'
-
         # 注册连接
         Connection.clients.append(self)
+        print address[0] + '\t = [CONNECTED] Total clients: ' + str(len(Connection.clients))
 
         self._stream = stream
         self.address = address[0]
@@ -95,7 +94,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room:
                 result.append(remote_user.nick)
         return result
 
@@ -108,7 +107,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room:
                 result.append(remote_user)
         return result
 
@@ -121,7 +120,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room:
                 result.append(remote_client)
         return result
 
@@ -134,7 +133,7 @@ class Connection(object):
                 continue
             remote_user = remote_users[-1]
             remote_room = remote_user.room
-            if remote_room == self.get_current_user().room and remote_user.id != self.get_current_user().id:
+            if self.get_current_user() is not None and remote_room == self.get_current_user().room and remote_user.id != self.get_current_user().id:
                 result.append(remote_client)
         return result
 
@@ -305,8 +304,9 @@ class Connection(object):
             else:
                 client.send_json({'event': 'user_exit', 'nick': user.nick})
 
-        if room_expired:
-            db.delete(self.get_current_room())
+        room = self.get_current_room()
+        if room_expired and room is not None:
+            db.delete(room)
             db.commit()
 
     # 新游戏
@@ -322,7 +322,7 @@ class Connection(object):
         if current_index + 1 >= user_count:
             room.round += 1
 
-        if room.round >= max_round:
+        if room.round > max_round:
             self.end_game()
             return
         next_index = (current_index + 1) % user_count
@@ -337,7 +337,7 @@ class Connection(object):
         for client in self.get_connections_in_current_room():
             remote_user = client.get_current_user()
             if remote_user.room == room.id:
-                client.send_json({'event': 'game_start', 'players': self.get_user_nicks_in_current_room()})
+                client.send_json({'event': 'game_start', 'round': room.round, 'players': self.get_user_nicks_in_current_room()})
                 if remote_user.state == 2:
                     client.send_json({'event': 'generate_word', 'word': word})
                 elif remote_user.state == 3:
@@ -379,10 +379,10 @@ class Connection(object):
             print self.address + '\t = [ASSERTION ERROR]'
 
     def on_close(self):
-        print self.address + '\t = [DISCONNECTED]'
         self.user_exit()
 
         Connection.clients.remove(self)
+        print self.address + '\t = [DISCONNECTED] Total clients: ' + str(len(Connection.clients))
 
 class GameServer(TCPServer):
     def handle_stream(self, stream, address):
