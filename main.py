@@ -177,6 +177,11 @@ class Connection(object):
                         return
 
                     room = rooms[-1]
+                    if room.state == 1:
+                        self.send_json({'method': 'join_room', 'success': False, 'reason': '该房间已开始游戏'})
+                        self.read_message()  # 进入下次I/O循环
+                        return
+
                     nick = json_data['nick']
                     user = User(ip=self.address, nick=nick, room=room.id, state=0)
                     db.add(user)
@@ -194,7 +199,7 @@ class Connection(object):
                     print str(e)
                     self.send_json({'method': 'join_room', 'success': False, 'reason': u'加入房间失败, 请重试'})
 
-            # 准备游戏
+            # 开始游戏
             elif method == 'start_game':
                 print self.address + '\t = [START GAME]'
 
@@ -212,8 +217,19 @@ class Connection(object):
                 x = json_data['x']
                 y = json_data['y']
                 new_line = json_data['new_line']
+                eraser = json_data['eraser']
                 self.send_json({'method': 'update_pic', 'success': True})
-                json_resp = {'event': 'pic_updated', 'x': x, 'y': y, 'new_line': new_line}
+                json_resp = {'event': 'pic_updated', 'x': x, 'y': y, 'new_line': new_line, 'eraser': eraser}
+
+                for client in self.get_other_connections_in_current_room():
+                    client.send_json(json_resp)
+
+            # 更新绘图
+            elif method == 'clear_pic':
+                print self.address + '\t = [CLEAR PIC]'
+
+                self.send_json({'method': 'pic_clear', 'success': True})
+                json_resp = {'event': 'pic_clear'}
 
                 for client in self.get_other_connections_in_current_room():
                     client.send_json(json_resp)
@@ -274,13 +290,12 @@ class Connection(object):
     def user_exit(self):
         print self.address + '\t = [EXIT ROOM]'
 
-        if self.get_current_room() is not None and self.get_current_room().state == 1:
-            self.send_json({'method': 'exit_room', 'success': False, 'reason': '状态错误, 游戏中不允许退出房间! '})
-            return
         user = self.get_current_user()
-        room_expired = user.state == 1
-        db.delete(user)
-        db.commit()
+        room_expired = (user is not None and user.state == 1) \
+                       or (self.get_current_room() is not None and self.get_current_room().state == 1)
+        if user is not None:
+            db.delete(user)
+            db.commit()
 
         self.send_json({'method': 'exit_room', 'success': True})
 
