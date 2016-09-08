@@ -403,8 +403,8 @@ class Connection(object):
         try:
             message = json.dumps(json_data, ensure_ascii=False)
             self.send_message(message + '\n')
-            if message.index('')
-            print self.address + '\t < ' + message
+            if message.index('update_pic') < 0 and message.index('pic_updated') < 0:
+                print self.address + '\t < ' + message
         except:
             pass
 
