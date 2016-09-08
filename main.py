@@ -291,7 +291,7 @@ class Connection(object):
                 self.user_exit()
 
         except Exception as e:
-            print str(e)
+            traceback.print_exc()
             print self.address + '\t = [UNKNOWN ERROR]'
             self.send_json({'success': False, 'reason': '未知错误'})
         self.read_message()
