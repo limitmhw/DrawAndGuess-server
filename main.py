@@ -302,8 +302,7 @@ class Connection(object):
         print self.address + '\t = [EXIT ROOM]'
 
         user = self.get_current_user()
-        room_expired = (user is not None and user.state == 1) \
-                       or (self.get_current_room() is not None and self.get_current_room().state == 1)
+        room_expired = user is not None and user.state >= 1
         if user is not None:
             db.delete(user)
             db.commit()
