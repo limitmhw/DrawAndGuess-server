@@ -223,13 +223,8 @@ class Connection(object):
             # 开始游戏
             elif method == 'start_game':
                 print self.address + '\t = [START GAME]'
-
-                if self.get_current_user().state == 1:
-                    self.send_json({'method': 'start_game', 'success': True})
-                    self.new_game()
-
-                else:
-                    self.send_json({'method': 'start_game', 'success': False, 'reason': u'不是房主, 不能开始游戏'})
+                self.send_json({'method': 'start_game', 'success': True})
+                self.new_game()
 
             # 更新绘图
             elif method == 'update_pic':
