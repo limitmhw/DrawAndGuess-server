@@ -57,6 +57,13 @@ class Connection(object):
 
     # 新用户连接
     def __init__(self, stream, address):
+
+        # 挤掉重复ip的连接以防bug
+        for client in Connection.clients:
+            if client.address == address[0]:
+                client.send_json({'event': 'ip_duplicate'})
+                client.on_close()
+
         # 注册连接
         Connection.clients.append(self)
         print address[0] + '\t = [CONNECTED] Total clients: ' + str(len(Connection.clients))
