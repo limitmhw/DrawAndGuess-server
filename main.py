@@ -300,7 +300,7 @@ class Connection(object):
                 print self.address + '\t = [TIME UP]'
 
                 self.send_json({'method': 'time_up', 'success': True})
-                json_resp = {'event': 'time_up'}
+                json_resp = {'event': 'time_up', 'word': get_current_room().curr_word}
 
                 for client in self.get_connections_in_current_room():
                     client.send_json(json_resp)
