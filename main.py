@@ -297,7 +297,7 @@ class Connection(object):
                 all_win = True
                 if win:
                     for user in self.get_users_in_current_room():
-                        if user.win == 0:
+                        if user.win == 0 and user.state != 2:
                             all_win = False
                     if all_win:
                         for client in self.get_connections_in_current_room():
