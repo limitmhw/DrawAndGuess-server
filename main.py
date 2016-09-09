@@ -27,7 +27,7 @@ engine = create_engine('mysql://%s:%s@%s/%s?charset=utf8' % (DB_USER, DB_PWD, DB
                        echo=False,
                        pool_size=100, pool_recycle=10)
 db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True, expire_on_commit=False))
-max_round = 2
+max_round = 3
 
 
 # 房间ORM
