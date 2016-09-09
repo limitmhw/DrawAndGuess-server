@@ -88,7 +88,7 @@ class Connection(object):
             return None
 
     def get_user_nicks_in_current_room(self):
-        result = list()
+        result = set()
         for remote_client in Connection.clients:
             remote_address = remote_client.address
             remote_users = db.query(User).filter(User.ip == remote_address).all()
@@ -97,8 +97,11 @@ class Connection(object):
             remote_user = remote_users[-1]
             remote_room = remote_user.room
             if self.get_current_user() is not None and remote_room == self.get_current_user().room:
-                result.append(remote_user.nick)
-        return result
+                result.add(remote_user.nick)
+        _result = list()
+        for i in result:
+            _result.append(i)
+        return _result
 
     def get_user_nicks_in_room(self, room):
         result = list()
