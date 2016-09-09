@@ -172,7 +172,7 @@ class Connection(object):
                     db.add(room)
                     db.commit()
 
-                    user = User(ip=self.address, nick=nick, room=room.id, state=1)
+                    user = User(ip=self.address, nick=nick, room=room.id, state=1, win=0)
                     db.add(user)
                     db.commit()
 
@@ -205,7 +205,7 @@ class Connection(object):
                         self.read_message()  # 进入下次I/O循环
                         return
                     
-                    user = User(ip=self.address, nick=nick, room=room.id, state=0)
+                    user = User(ip=self.address, nick=nick, room=room.id, state=0, win=0)
                     db.add(user)
                     db.commit()
 
