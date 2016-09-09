@@ -27,7 +27,7 @@ engine = create_engine('mysql://%s:%s@%s/%s?charset=utf8' % (DB_USER, DB_PWD, DB
                        echo=False,
                        pool_size=100, pool_recycle=10)
 db = scoped_session(sessionmaker(bind=engine, autocommit=False, autoflush=True, expire_on_commit=False))
-max_round = 2
+max_round = 3
 
 
 # 房间ORM
@@ -57,6 +57,13 @@ class Connection(object):
 
     # 新用户连接
     def __init__(self, stream, address):
+
+        # 挤掉重复ip的连接以防bug
+        for client in Connection.clients:
+            if client.address == address[0]:
+                client.send_json({'event': 'ip_duplicate'})
+                client.on_close()
+
         # 注册连接
         Connection.clients.append(self)
         print address[0] + '\t = [CONNECTED] Total clients: ' + str(len(Connection.clients))
@@ -172,7 +179,7 @@ class Connection(object):
                     db.add(room)
                     db.commit()
 
-                    user = User(ip=self.address, nick=nick, room=room.id, state=1)
+                    user = User(ip=self.address, nick=nick, room=room.id, state=1, win=0)
                     db.add(user)
                     db.commit()
 
@@ -205,7 +212,7 @@ class Connection(object):
                         self.read_message()  # 进入下次I/O循环
                         return
                     
-                    user = User(ip=self.address, nick=nick, room=room.id, state=0)
+                    user = User(ip=self.address, nick=nick, room=room.id, state=0, win=0)
                     db.add(user)
                     db.commit()
 
@@ -224,13 +231,8 @@ class Connection(object):
             # 开始游戏
             elif method == 'start_game':
                 print self.address + '\t = [START GAME]'
-
-                if self.get_current_user().state == 1:
-                    self.send_json({'method': 'start_game', 'success': True})
-                    self.new_game()
-
-                else:
-                    self.send_json({'method': 'start_game', 'success': False, 'reason': u'不是房主, 不能开始游戏'})
+                self.send_json({'method': 'start_game', 'success': True})
+                self.new_game()
 
             # 更新绘图
             elif method == 'update_pic':
@@ -302,7 +304,7 @@ class Connection(object):
                 all_win = True
                 if win:
                     for user in self.get_users_in_current_room():
-                        if user.win == 0:
+                        if user.win == 0 and user.state != 2:
                             all_win = False
                     if all_win:
                         for client in self.get_connections_in_current_room():
