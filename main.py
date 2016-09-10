@@ -341,12 +341,13 @@ class Connection(object):
                 print self.address + '\t = [TIME UP]'
 
                 self.send_json({'method': 'time_up', 'success': True})
-                json_resp = {'event': 'time_up', 'word': self.get_current_room().curr_word}
+                if self.get_current_room() is not None:
+                    json_resp = {'event': 'time_up', 'word': self.get_current_room().curr_word}
 
-                for client in self.get_connections_in_current_room():
-                    client.send_json(json_resp)
+                    for client in self.get_connections_in_current_room():
+                        client.send_json(json_resp)
 
-                self.new_game()
+                    self.new_game()
 
             # 退出房间
             elif method == 'exit_room':
