@@ -279,7 +279,7 @@ class Connection(object):
                 print self.address + '\t = [START GAME]'
 
                 if len(self.get_user_nicks_in_current_room()) < 2:
-                    self.send_json({'method': 'start_game', 'success': False, 'reason': u'至少2人才能开始游戏！'}
+                    self.send_json({'method': 'start_game', 'success': False, 'reason': u'至少2人才能开始游戏！'})
                 else:
                     self.send_json({'method': 'start_game', 'success': True})
                     self.new_game()
