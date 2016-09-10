@@ -112,10 +112,10 @@ class Connection(object):
 
         # 注册连接
         Connection.clients.append(self)
-        print address[0] + ':' + str(address[1]) + '\t = [CONNECTED] Total clients: ' + str(len(Connection.clients))
+        print str(address) + '\t = [CONNECTED] Total clients: ' + str(len(Connection.clients))
 
         self._stream = stream
-        self.address = address[0] + ':' + str(address[1])
+        self.address = str(address)
         self._stream.set_close_callback(self.on_close)
         self.read_message()
 
@@ -494,7 +494,7 @@ class GameServer(TCPServer):
 
 
 if __name__ == '__main__':
-    print('127.0.0.1:8082\t = [SERVER START]')
+    print('[SERVER START]')
     server = GameServer()
     server.listen(8082)
     IOLoop.instance().start()
