@@ -376,6 +376,7 @@ class Connection(object):
 
         except Exception as e:
             traceback.print_exc()
+            db.rollback()
             print self.address + '\t = [UNKNOWN ERROR]'
             self.send_json({'success': False, 'reason': '未知错误'})
         self.read_message()
